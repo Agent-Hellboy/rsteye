@@ -18,23 +18,17 @@ jobs:
       with:
         python-version: '3.x'
 
-    - name: Create virtual environment
-      run: python3 -m venv .venv
-
-    - name: Activate virtual environment
-      run: source .venv/bin/activate
-
     - name: Install dependencies
       run: |
-        python3 -m pip install pillow pyinstaller python-dotenv
+        python3 -m pip install -r requirements.txt
 
     - name: Build PyInstaller application
       run: |
-        pyinstaller --name RstEyeApp --windowed --onefile --add-data "med.gif:." --add-data "rsteye.png:." --hidden-import=PIL.ImageTk --additional-hooks-dir=hooks app.py
+        python3 -m PyInstaller --name RstEyeApp --windowed --onefile --paths src --add-data "src/rsteye/resources/med.gif:rsteye/resources" --add-data "src/rsteye/resources/rsteye.png:rsteye/resources" --icon=packaging/macos/pkg/RstEyeIcon.icns --hidden-import=PIL.ImageTk --additional-hooks-dir=packaging/pyinstaller/hooks app.py
 
     - name: Create initial PKG structure
       run: |
-        pkgbuild --root dist/RstEyeApp.app  --scripts mac_os_files/scripts   --identifier com.rsteye.rsteye --version 1.0   --install-location /Applications/RstEyeApp   mac_os_files/RstEyeApp.pkg
+        pkgbuild --root dist/RstEyeApp.app --scripts packaging/macos/pkg/scripts --identifier com.rsteye.rsteye --version 1.0 --install-location /Applications/RstEyeApp packaging/macos/pkg/RstEyeApp.pkg
 
     # - name: Sign PKG
     #   run: |
@@ -42,7 +36,7 @@ jobs:
     
     - name: Create Final Installer
       run: |
-        productbuild --distribution mac_os_files/distribution.xml --resources mac_os_files/resources --package-path mac_os_files --version 1.0 RstEyeAppInstaller.pkg
+        productbuild --distribution packaging/macos/pkg/distribution.xml --resources packaging/macos/pkg/resources --package-path packaging/macos/pkg --version 1.0 RstEyeAppInstaller.pkg
         
     - name: Upload files to a GitHub release
       uses: svenstaro/upload-release-action@2.9.0
@@ -72,10 +66,10 @@ jobs:
         mkdir -p rsteye/usr/bin
         mkdir -p rsteye/lib/systemd/system
         cp RstEyeApp rsteye/usr/bin/RstEyeApp
-        cp debian_pkg_files/rsteye.service rsteye/lib/systemd/system/rsteye.service
-        cp debian_pkg_files/control rsteye/DEBIAN/control
-        cp debian_pkg_files/postinst rsteye/DEBIAN/postinst
-        cp debian_pkg_files/postrm rsteye/DEBIAN/postrm
+        cp packaging/linux/debian/rsteye.service rsteye/lib/systemd/system/rsteye.service
+        cp packaging/linux/debian/control rsteye/DEBIAN/control
+        cp packaging/linux/debian/postinst rsteye/DEBIAN/postinst
+        cp packaging/linux/debian/postrm rsteye/DEBIAN/postrm
         chmod 755 rsteye/DEBIAN/postinst
         chmod 755 rsteye/DEBIAN/postrm
         dpkg-deb --build rsteye
@@ -100,19 +94,13 @@ jobs:
       with:
         python-version: '3.x'
 
-    - name: Create virtual environment
-      run: python -m venv .venv
-
-    - name: Activate virtual environment
-      run: .\.venv\Scripts\activate
-
     - name: Install dependencies
       run: |
-        python -m pip install pillow pyinstaller python-dotenv
+        python -m pip install -r requirements.txt
 
     - name: Build PyInstaller application
       run: |
-        pyinstaller --name RstEyeApp --onefile --add-data "med.gif;." --hidden-import=PIL.ImageTk --additional-hooks-dir=hooks app.py
+        python -m PyInstaller --name RstEyeApp --onefile --paths src --add-data "src\rsteye\resources\med.gif;rsteye/resources" --add-data "src\rsteye\resources\rsteye.png;rsteye/resources" --icon=packaging\windows\rsteye.ico --hidden-import=PIL.ImageTk --additional-hooks-dir=packaging\pyinstaller\hooks app.py
 
     - name: Install Inno Setup
       run: |
@@ -121,7 +109,7 @@ jobs:
     - name: Create Inno Setup installer
       shell: pwsh
       run: |
-        & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" setup.iss
+        & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" packaging\windows\setup.iss
 
     - name: Upload files to a GitHub release
       uses: svenstaro/upload-release-action@2.9.0

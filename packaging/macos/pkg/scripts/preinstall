@@ -1,19 +1,15 @@
 #!/bin/bash
 
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
 # Run the AppleScript to get user input
-osascript user_input.applescript
+osascript "$SCRIPT_DIR/user_input.applescript"
 
 # Read the input values
 POPUP_INTERVAL=$(cat /tmp/POPUP_INTERVAL)
 POPUP_DURATION=$(cat /tmp/POPUP_DURATION)
-
-# Export the variables so they are available to the installer
-export POPUP_INTERVAL
-export POPUP_DURATION
-
-# Persist the variables using launchctl
-launchctl setenv POPUP_INTERVAL "$POPUP_INTERVAL"
-launchctl setenv POPUP_DURATION "$POPUP_DURATION"
 
 # Create a plist file to persist the environment variables
 cat <<EOF >/Library/LaunchDaemons/com.rsteye.env.plist
@@ -41,11 +37,8 @@ cat <<EOF >/Library/LaunchDaemons/com.rsteye.env.plist
 EOF
 
 # Load the plist to set the environment variables
-launchctl load /Library/LaunchDaemons/com.rsteye.env.plist
-
-launchctl start com.rsteye.env
+launchctl bootstrap system /Library/LaunchDaemons/com.rsteye.env.plist || true
 
 # Remove the temporary files
 rm /tmp/POPUP_INTERVAL
 rm /tmp/POPUP_DURATION
-

@@ -16,11 +16,17 @@ RUN python3 -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
 # Install Python packages
-RUN pip install pillow pyinstaller python-dotenv
+COPY requirements.txt /app/requirements.txt
+RUN pip install --no-cache-dir -r /app/requirements.txt
 
 # Copy application source code
 COPY . /app
 WORKDIR /app
 
 # Build the binary
-RUN pyinstaller --name RstEyeApp --onefile --add-data "med.gif:." --add-data "rsteye.png:." --hidden-import=PIL.ImageTk --additional-hooks-dir=hooks app.py
+RUN pyinstaller --name RstEyeApp --onefile --paths src \
+    --add-data "src/rsteye/resources/med.gif:rsteye/resources" \
+    --add-data "src/rsteye/resources/rsteye.png:rsteye/resources" \
+    --hidden-import=PIL.ImageTk \
+    --additional-hooks-dir=packaging/pyinstaller/hooks \
+    app.py
