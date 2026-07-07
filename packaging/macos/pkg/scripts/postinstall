@@ -1,5 +1,9 @@
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
 # Copy the plist file to /Library/LaunchDaemons
-cp "com.rsteye.rsteye.plist" /Library/LaunchDaemons/
+cp "$SCRIPT_DIR/com.rsteye.rsteye.plist" /Library/LaunchDaemons/
 
 # Load the plist file using launchctl
 launchctl load "/Library/LaunchDaemons/com.rsteye.rsteye.plist"
