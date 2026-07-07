@@ -1,4 +1,0 @@
-#!/bin/bash
-set -e
-systemctl enable rsteye.service
-systemctl start rsteye.service

@@ -66,6 +66,9 @@
     
     - create a deb package(`dpkg-deb --build rsteye`) after copying the binary to deb_package(rsteye) usr/bin and creating DEBIAN files  
 
+    - DEBUG 
+      - journalctl -u rsteye.service -b
+
   - Mac
 
      - Create a Virtual Environment and Install Dependencies

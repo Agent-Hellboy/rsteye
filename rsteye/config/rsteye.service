@@ -1,0 +1,16 @@
+[Service]
+User=%i
+
+[Unit]
+Description=RstEye Service
+After=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/RstEyeApp
+EnvironmentFile=%h/.config/rsteye.env
+Restart=on-failure
+Environment="DISPLAY=:0"
+
+[Install]
+WantedBy=default.target

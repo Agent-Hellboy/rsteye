@@ -1,0 +1,9 @@
+Template: rsteye/popup_interval
+Type: string
+Default: 60
+Description: Please enter the popup interval (in seconds):
+
+Template: rsteye/popup_duration
+Type: string
+Default: 5
+Description: Please enter the popup duration (in seconds):

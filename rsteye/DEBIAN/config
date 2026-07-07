@@ -1,0 +1,5 @@
+#!/bin/bash
+. /usr/share/debconf/confmodule
+db_input high rsteye/popup_interval || true
+db_input high rsteye/popup_duration || true
+db_go

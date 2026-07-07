@@ -1,0 +1,50 @@
+#!/bin/bash
+set -e
+
+# Source the debconf library.
+. /usr/share/debconf/confmodule
+
+# Preserve original user's home directory
+HOME="$(getent passwd "$SUDO_USER" | cut -d: -f6)"
+
+
+# Get the user input values.
+db_get rsteye/popup_interval
+POPUP_INTERVAL="$RET"
+db_get rsteye/popup_duration
+POPUP_DURATION="$RET"
+
+# Ensure the $HOME/.config/systemd/user directory exists.
+USER_SYSTEMD_DIR="$HOME/.config/systemd/user"
+echo $HOME
+mkdir -p "$USER_SYSTEMD_DIR"
+
+
+# Copy the service file to the user systemd directory.
+RSTEYE_DIR="$PWD"
+SERVICE_FILE="$USER_SYSTEMD_DIR/rsteye.service"
+cp "$RSTEYE_DIR/config/rsteye.service" "$SERVICE_FILE"
+
+
+# Update the service file with correct environment variables.
+sed -i "s/POPUP_INTERVAL_REPLACE/$POPUP_INTERVAL/g" "$SERVICE_FILE"
+sed -i "s/POPUP_DURATION_REPLACE/$POPUP_DURATION/g" "$SERVICE_FILE"
+
+# Create the environment file.
+ENV_FILE="$USER_SYSTEMD_DIR/rsteye.env"
+cat <<EOF > "$ENV_FILE"
+[Service]
+Environment="POPUP_INTERVAL=$POPUP_INTERVAL"
+Environment="POPUP_DURATION=$POPUP_DURATION"
+EOF
+
+# Inform the user about the changes.
+echo "Service file copied to $USER_SYSTEMD_DIR and environment variables set."
+
+# Reload systemd user units to apply changes
+sudo -u "$SUDO_USER" systemctl --user daemon-reload
+
+# Enable and start the service.
+sudo -u "$SUDO_USER" systemctl --user enable --now rsteye.service
+
+exit 0
