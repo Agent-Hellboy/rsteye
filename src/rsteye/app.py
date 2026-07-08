@@ -58,6 +58,7 @@ class RstEyeApp:
         self.root.withdraw()
         self._background_image = None
         self._frame_images = []
+        self._frame_delays = []
         self._popup_active = False
         self._ready = True
 
@@ -154,17 +155,27 @@ class RstEyeApp:
                     screen_height = window.winfo_screenheight()
 
                     img = Image.open(self.image_path)
-                    self._frame_images = [
-                        ImageTk.PhotoImage(
-                            frame.copy().resize(
-                                (screen_width, screen_height), Image.LANCZOS
-                            )
+                    canvas = Image.new("RGBA", img.size)
+                    self._frame_images = []
+                    self._frame_delays = []
+                    for frame in ImageSequence.Iterator(img):
+                        frame_rgba = frame.convert("RGBA")
+                        composed = canvas.copy()
+                        composed.alpha_composite(frame_rgba)
+                        resized = composed.resize(
+                            (screen_width, screen_height), Image.LANCZOS
                         )
-                        for frame in ImageSequence.Iterator(img)
-                    ]
+                        self._frame_images.append(ImageTk.PhotoImage(resized))
+                        self._frame_delays.append(
+                            max(20, int(frame.info.get("duration", 50)))
+                        )
+                        canvas = composed
 
                     label = Label(window, bg="black")
                     label.pack(fill="both", expand=True)
+                    if self._frame_images:
+                        label.configure(image=self._frame_images[0])
+                        label.image = self._frame_images[0]
                     break_finished = False
 
                     def update_frame(frame_index: int) -> None:
@@ -173,8 +184,10 @@ class RstEyeApp:
 
                         frame = self._frame_images[frame_index]
                         label.configure(image=frame)
+                        label.image = frame
+                        delay = self._frame_delays[frame_index]
                         window.after(
-                            50,
+                            delay,
                             update_frame,
                             (frame_index + 1) % len(self._frame_images),
                         )
@@ -191,6 +204,11 @@ class RstEyeApp:
                     window.after(0, update_frame, 0)
                     window.protocol("WM_DELETE_WINDOW", finish_break)
                     window.deiconify()
+                    window.update_idletasks()
+                    window.lift()
+                    window.attributes("-topmost", True)
+                    window.focus_force()
+                    window.after(250, lambda: window.attributes("-topmost", False))
                     popup.destroy()
                     logger.info(
                         "Image window will close after %d seconds.",
@@ -266,4 +284,3 @@ def main() -> None:
     except Exception:
         logger.exception("Unhandled exception occurred.")
         messagebox.showerror("Fatal Error", "An unexpected error occurred.")
-
