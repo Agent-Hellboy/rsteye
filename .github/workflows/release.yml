@@ -3,118 +3,123 @@ name: Publish
 on:
   push:
     tags:
-      - '*'
+      - 'v*'
+
+permissions:
+  contents: write
 
 jobs:
-  publish-mac:
+  publish-macos:
     name: Publish for macOS
     runs-on: macos-latest
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
+      - name: Check out source
+        uses: actions/checkout@v4
 
-    - name: Set up Python
-      uses: actions/setup-python@v2
-      with:
-        python-version: '3.x'
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
 
-    - name: Install dependencies
-      run: |
-        python3 -m pip install -r requirements.txt
+      - name: Install dependencies
+        run: python -m pip install --upgrade pip && python -m pip install '.[build]'
 
-    - name: Build PyInstaller application
-      run: |
-        python3 -m PyInstaller --name RstEyeApp --windowed --onefile --paths src --add-data "src/rsteye/resources/med.gif:rsteye/resources" --add-data "src/rsteye/resources/rsteye.png:rsteye/resources" --icon=packaging/macos/pkg/RstEyeIcon.icns --hidden-import=PIL.ImageTk --additional-hooks-dir=packaging/pyinstaller/hooks app.py
+      - name: Validate resources
+        run: python scripts/validate_resources.py
 
-    - name: Create initial PKG structure
-      run: |
-        pkgbuild --root dist/RstEyeApp.app --scripts packaging/macos/pkg/scripts --identifier com.rsteye.rsteye --version 1.0 --install-location /Applications/RstEyeApp packaging/macos/pkg/RstEyeApp.pkg
+      - name: Build application bundle
+        run: |
+          python -m PyInstaller --clean --noconfirm --name RstEyeApp \
+            --onedir --windowed --paths src \
+            --add-data "src/rsteye/resources/med.gif:rsteye/resources" \
+            --add-data "src/rsteye/resources/rsteye.png:rsteye/resources" \
+            --icon=packaging/macos/pkg/RstEyeIcon.icns \
+            --osx-bundle-identifier com.rsteye.rsteye \
+            --hidden-import=PIL.ImageTk \
+            --additional-hooks-dir=packaging/pyinstaller/hooks app.py
+          test -d dist/RstEyeApp.app
 
-    # - name: Sign PKG
-    #   run: |
-    #     codesign --deep -s - --options runtime --timestamp --entitlements mac_os_files/entitlements.plist mac_os_files/RstEyeApp.pkg
-    
-    - name: Create Final Installer
-      run: |
-        productbuild --distribution packaging/macos/pkg/distribution.xml --resources packaging/macos/pkg/resources --package-path packaging/macos/pkg --version 1.0 RstEyeAppInstaller.pkg
-        
-    - name: Upload files to a GitHub release
-      uses: svenstaro/upload-release-action@2.9.0
-      with:
-        repo_token: ${{ secrets.GITHUB_TOKEN }}
-        file: RstEyeAppInstaller.pkg
-        asset_name: RstEyeAppInstaller.pkg
-        tag: ${{ github.ref }}
+      - name: Build installer
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          pkgbuild --component dist/RstEyeApp.app \
+            --scripts packaging/macos/pkg/scripts \
+            --identifier com.rsteye.rsteye --version "$version" \
+            --install-location /Applications packaging/macos/pkg/RstEyeApp.pkg
+          productbuild --distribution packaging/macos/pkg/distribution.xml \
+            --resources packaging/macos/pkg/resources \
+            --package-path packaging/macos/pkg \
+            "dist/RstEyeAppInstaller_${version}.pkg"
+
+      - name: Upload macOS installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-installer
+          path: dist/RstEyeAppInstaller_*.pkg
 
   publish-ubuntu:
     name: Publish for Ubuntu
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends dpkg-dev python3-tk
+
+      - name: Install dependencies
+        run: python -m pip install --upgrade pip && python -m pip install '.[build]'
+
+      - name: Validate resources
+        run: python scripts/validate_resources.py
+
+      - name: Build application binary
+        run: |
+          python -m PyInstaller --clean --noconfirm --name rsteye \
+            --onefile --windowed --paths src \
+            --add-data "src/rsteye/resources/med.gif:rsteye/resources" \
+            --add-data "src/rsteye/resources/rsteye.png:rsteye/resources" \
+            --hidden-import=PIL.ImageTk \
+            --additional-hooks-dir=packaging/pyinstaller/hooks app.py
+
+      - name: Build Debian package
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          mkdir -p build/deb/DEBIAN build/deb/usr/bin build/deb/etc/xdg/autostart
+          cp dist/rsteye build/deb/usr/bin/rsteye
+          cp packaging/linux/debian/control build/deb/DEBIAN/control
+          cp packaging/linux/debian/postinst build/deb/DEBIAN/postinst
+          cp packaging/linux/debian/postrm build/deb/DEBIAN/postrm
+          cp packaging/linux/rsteye.desktop build/deb/etc/xdg/autostart/rsteye.desktop
+          sed -i "s/^Version:.*/Version: ${version}/" build/deb/DEBIAN/control
+          chmod 755 build/deb/DEBIAN/postinst build/deb/DEBIAN/postrm
+          dpkg-deb --build --root-owner-group build/deb "dist/rsteye_${version}_amd64.deb"
+
+      - name: Upload Ubuntu package
+        uses: actions/upload-artifact@v4
+        with:
+          name: ubuntu-package
+          path: dist/rsteye_*.deb
+
+  publish-release:
+    name: Publish release assets
+    needs: [publish-macos, publish-ubuntu]
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
+      - name: Download release assets
+        uses: actions/download-artifact@v4
+        with:
+          path: release-assets
 
-    - name: Build Docker image
-      run: docker build -t rsteye-build .
-
-    - name: Create container and copy binary
-      run: |
-        docker run --rm -v $(pwd):/host rsteye-build sh -c 'cp /app/dist/RstEyeApp /host/RstEyeApp'
-
-    - name: Create Debian package structure and build package
-      run: |
-        mkdir -p rsteye/DEBIAN
-        mkdir -p rsteye/usr/bin
-        mkdir -p rsteye/lib/systemd/system
-        cp RstEyeApp rsteye/usr/bin/RstEyeApp
-        cp packaging/linux/debian/rsteye.service rsteye/lib/systemd/system/rsteye.service
-        cp packaging/linux/debian/control rsteye/DEBIAN/control
-        cp packaging/linux/debian/postinst rsteye/DEBIAN/postinst
-        cp packaging/linux/debian/postrm rsteye/DEBIAN/postrm
-        chmod 755 rsteye/DEBIAN/postinst
-        chmod 755 rsteye/DEBIAN/postrm
-        dpkg-deb --build rsteye
-
-    - name: Upload files to a GitHub release
-      uses: svenstaro/upload-release-action@2.9.0
-      with:
-        repo_token: ${{ secrets.GITHUB_TOKEN }}
-        file: rsteye.deb
-        asset_name: rsteye.deb
-        tag: ${{ github.ref }}
-
-  publish-windows:
-    name: Publish for Windows
-    runs-on: windows-latest
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
-
-    - name: Set up Python
-      uses: actions/setup-python@v2
-      with:
-        python-version: '3.x'
-
-    - name: Install dependencies
-      run: |
-        python -m pip install -r requirements.txt
-
-    - name: Build PyInstaller application
-      run: |
-        python -m PyInstaller --name RstEyeApp --onefile --paths src --add-data "src\rsteye\resources\med.gif;rsteye/resources" --add-data "src\rsteye\resources\rsteye.png;rsteye/resources" --icon=packaging\windows\rsteye.ico --hidden-import=PIL.ImageTk --additional-hooks-dir=packaging\pyinstaller\hooks app.py
-
-    - name: Install Inno Setup
-      run: |
-        choco install innosetup
-        
-    - name: Create Inno Setup installer
-      shell: pwsh
-      run: |
-        & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" packaging\windows\setup.iss
-
-    - name: Upload files to a GitHub release
-      uses: svenstaro/upload-release-action@2.9.0
-      with:
-        repo_token: ${{ secrets.GITHUB_TOKEN }}
-        file: dist\RstEyeAppInstaller.exe
-        asset_name: RstEyeAppInstaller.exe
-        tag: ${{ github.ref }}
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: release-assets/**/*

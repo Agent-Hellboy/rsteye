@@ -1,7 +1,0 @@
-Package: rsteye
-Version: 1.0.9
-Section: base
-Priority: optional
-Architecture: amd64
-Maintainer: Prince Roshan <princekrroshan01@gmail.com>
-Description: An App to remind users to take breaks and relax their eyes while working on the computer.

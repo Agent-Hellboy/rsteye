@@ -4,13 +4,22 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "rsteye"
-version = "1.0.9"
+version = "1.0.10"
 description = "Desktop reminder app for breathing breaks"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
   "pillow",
   "python-dotenv",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8",
+  "ruff>=0.6",
+]
+build = [
+  "pyinstaller>=6",
 ]
 
 [project.scripts]
@@ -25,3 +34,7 @@ where = ["src"]
 
 [tool.setuptools.package-data]
 rsteye = ["resources/*.gif", "resources/*.png"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py310"

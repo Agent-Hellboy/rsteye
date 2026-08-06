@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=RstEye
+Comment=Reminder to take eye breaks
+Exec=/usr/bin/rsteye
+Terminal=false
+NoDisplay=true
+X-GNOME-Autostart-enabled=true
+OnlyShowIn=GNOME;KDE;XFCE;LXQt;MATE;Unity;

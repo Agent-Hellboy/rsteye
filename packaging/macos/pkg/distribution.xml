@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <installer-gui-script minSpecVersion="1">
-    <title>RstEyeApp Installer</title>
+    <title>RstEye Installer</title>
     <welcome>
         <file>Welcome.rtf</file>
     </welcome>
@@ -17,5 +17,5 @@
     <choice id="com.rsteye.rsteye" visible="false">
         <pkg-ref id="com.rsteye.rsteye"/>
     </choice>
-    <pkg-ref id="com.rsteye.rsteye" version="1.0" auth="Root">file:./RstEyeApp.pkg</pkg-ref>
+    <pkg-ref id="com.rsteye.rsteye" version="1.0.10" auth="Root">file:./RstEyeApp.pkg</pkg-ref>
 </installer-gui-script>

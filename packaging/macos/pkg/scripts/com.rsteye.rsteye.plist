@@ -6,11 +6,13 @@
     <string>com.rsteye.rsteye</string>
     <key>ProgramArguments</key>
     <array>
-        <string>/Applications/RstEyeApp/Contents/MacOS/RstEyeApp</string>
+        <string>/Applications/RstEyeApp.app/Contents/MacOS/RstEyeApp</string>
     </array>
+    <key>LimitLoadToSessionType</key>
+    <string>Aqua</string>
+    <key>ProcessType</key>
+    <string>Interactive</string>
     <key>RunAtLoad</key>
-    <true/>
-    <key>KeepAlive</key>
     <true/>
 </dict>
 </plist>

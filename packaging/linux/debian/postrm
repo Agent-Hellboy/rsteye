@@ -1,4 +1,4 @@
-#!/bin/bash
-set -e
-systemctl stop rsteye.service
-systemctl disable rsteye.service
+#!/bin/sh
+set -eu
+
+exit 0

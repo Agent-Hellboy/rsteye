@@ -1,4 +1,6 @@
-#!/bin/bash
-set -e
-systemctl enable rsteye.service
-systemctl start rsteye.service
+#!/bin/sh
+set -eu
+
+# The desktop entry is installed in /etc/xdg/autostart. Nothing needs to be
+# started from the package manager's root installation process.
+exit 0

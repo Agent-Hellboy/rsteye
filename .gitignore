@@ -5,7 +5,6 @@ __pycache__/
 
 # OS files
 .DS_Store
-Thumbs.db
 
 # Editor state
 .vscode/
@@ -39,11 +38,12 @@ MANIFEST
 #  before PyInstaller builds the exe, so as to inject date/other infos into it.
 *.manifest
 *.spec
-*.exe
 *.pkg
 *.deb
-*.msi
 *.dmg
+
+# Generated knowledge-graph output
+graphify-out/
 
 # Installer logs
 pip-log.txt

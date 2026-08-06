@@ -1,15 +1,15 @@
-set -e
+#!/bin/sh
+set -eu
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+LAUNCH_AGENT="/Library/LaunchAgents/com.rsteye.rsteye.plist"
 
-# Copy the plist file to /Library/LaunchDaemons
-cp "$SCRIPT_DIR/com.rsteye.rsteye.plist" /Library/LaunchDaemons/
+install -m 644 "$SCRIPT_DIR/com.rsteye.rsteye.plist" "$LAUNCH_AGENT"
 
-# Load the plist file using launchctl
-launchctl load "/Library/LaunchDaemons/com.rsteye.rsteye.plist"
+console_uid="$(stat -f '%u' /dev/console)"
+if [ "$console_uid" -gt 0 ]; then
+    launchctl bootout "gui/$console_uid/com.rsteye.rsteye" 2>/dev/null || true
+    launchctl bootstrap "gui/$console_uid" "$LAUNCH_AGENT" 2>/dev/null || true
+fi
 
-# Start the service
-launchctl start "com.rsteye.rsteye"
-
-# Exit with success
 exit 0
